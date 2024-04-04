@@ -1,6 +1,6 @@
 #![allow(non_camel_case_types)]
 
-use std::{ffi::{c_int, c_ulong, c_ushort}, io::stdout, os::{fd::AsRawFd, raw::{c_uchar, c_uint}}, ptr::addr_of};
+use std::{ffi::{c_int, c_ulong, c_ushort}, io::{stdin, stdout, BufRead, Write}, os::{fd::AsRawFd, raw::{c_uchar, c_uint}}, ptr::addr_of};
 
 type tcflag_t = c_uint;
 type cc_t = c_uchar;
@@ -18,15 +18,13 @@ extern "C" {
 }
 
 #[repr(C)]
-#[derive(Default, Debug)]
+#[derive(Default)]
 struct winsize {
     pub ws_row: c_ushort,
     pub ws_col: c_ushort,
     pub ws_xpixel: c_ushort,
     pub ws_ypixel: c_ushort,
 }
-
-#[derive(Debug)]
 pub struct TermSize {
     pub rows: u16,
     pub cols: u16,
@@ -85,4 +83,38 @@ pub fn disable_raw_mode() {
     let res = unsafe { tcsetattr(raw_stdout, TCSAFLUSH, addr_of!(ORIG_TERMIOS)) };
 
     if res == -1 { panic!("tcsetattr failure"); }
+}
+
+pub fn clear_screen() {
+    // clean the screen and move cursor to upper left corner
+    print!("\x1b[2J");
+    print!("\x1b[H");
+    stdout().flush().expect("Flush failure");
+}
+
+pub fn press_backspace() {
+    //deletes previous character
+    print!("\x1b[D");
+    print!(" ");
+    print!("\x1b[D");
+}
+
+pub fn press_enter() {
+    // using LF (linux new line character)
+    print!("\n\x1b[G");
+
+    // using CRLF (windows new line character)
+    // print!("\r\n");
+}
+
+pub fn read() -> String {
+    let stdin = stdin();
+    let mut stdin = stdin.lock();
+
+    let buffer = stdin.fill_buf().unwrap_or_default();
+    let buffer = buffer.to_vec();
+        
+    stdin.consume(buffer.len());
+
+    String::from_utf8(buffer).unwrap()
 }

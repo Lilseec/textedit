@@ -1,11 +1,10 @@
-use std::io::{stdin, stdout, Bytes, Read, Stdin, Write};
+use std::io::{stdout, Write};
 
-use crate::term::{enable_raw_mode, get_terminal_size, TermSize};
+use crate::term::{clear_screen, enable_raw_mode, get_terminal_size, press_backspace, press_enter, read, TermSize};
 
 mod commands;
 
 pub (crate) struct Editor {
-    stdin_iter: Bytes<Stdin>,
     term_size: TermSize,
 }
 
@@ -14,44 +13,27 @@ impl Editor {
         let Some(term_size) = get_terminal_size() else {
             panic!("Couldn't get terminal window size");
         };
-        let stdin_iter = stdin().bytes();
 
-        // clean the screen and move cursor to upper left corner
-        print!("\x1b[2J");
-        print!("\x1b[H");
-        stdout().flush().expect("Flush failure");
+        clear_screen();
 
         enable_raw_mode();
 
         Self {
             term_size,
-            stdin_iter,
         }
     }
 
     pub (crate) fn start(&mut self) {
         loop {
-            let input = self.read();
-            print!("{}", input);
+            let input = read();
+
+            match input.as_str() {
+                ":" => self.command(),
+                "\u{7f}" => press_backspace(),
+                "\r" => press_enter(),
+                _ => print!("{input}"),
+            }
             stdout().flush().expect("Flush failure");
-
-            match input {
-                ':' => self.command(),
-                _ => (),
-            }
-        }
-    }
-
-    fn read(&mut self) -> char {
-        loop {
-            let input = self.stdin_iter
-                .next()
-                .and_then(|res| res.ok());
-
-            match input {
-                Some(char) => return char as char,
-                None => continue,
-            }
         }
     }
 }
