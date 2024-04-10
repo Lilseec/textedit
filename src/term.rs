@@ -113,8 +113,28 @@ pub fn read() -> String {
 
     let buffer = stdin.fill_buf().unwrap_or_default();
     let buffer = buffer.to_vec();
-        
+    
     stdin.consume(buffer.len());
 
     String::from_utf8(buffer).unwrap()
+}
+
+pub fn move_teminal_cursor_right() {
+    print!("\x1b[C")
+}
+
+pub fn move_teminal_cursor_left() {
+    print!("\x1b[D")
+}
+
+pub fn move_teminal_cursor_up() {
+    print!("\x1b[A")
+}
+
+pub fn move_teminal_cursor_down() {
+    print!("\x1b[B")
+}
+
+pub fn erase_line_from_cursor() {
+    print!("\x1b[K");
 }
